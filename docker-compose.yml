@@ -1,0 +1,42 @@
+version: "3.9"
+
+services:
+  mlflow-service:
+    image: ghcr.io/mlflow/mlflow:latest
+    container_name: mlflow-service
+    ports:
+      - "8080:8080"
+    command: >
+      mlflow server --backend-store-uri /mlruns/mlflow.db
+      --default-artifact-root /mlruns
+      --host 0.0.0.0
+      --port 8080
+    volumes:
+      - ./mlflow_data:/mlruns
+
+  trainer-service:
+    build:
+      context: ./model
+    container_name: trainer-service
+    depends_on:
+      - mlflow-service
+    volumes:
+      - ./model:/app
+      - ./mlflow_data:/mlruns
+    command: python /app/model.py
+
+  web-service:
+    build:
+      context: ./web
+    container_name: web-service
+    depends_on:
+      - mlflow-service
+      - trainer-service
+    volumes:
+      - ./web:/app
+      - ./mlflow_data:/mlruns
+    environment:
+      - MLFLOW_TRACKING_URI=http://mlflow-service:8080
+    ports:
+      - "8000:8000"
+    command: uvicorn webservice:app --host 0.0.0.0 --port 8000
