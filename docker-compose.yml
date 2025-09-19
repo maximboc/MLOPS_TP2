@@ -1,5 +1,3 @@
-version: "3.9"
-
 services:
   mlflow-service:
     image: ghcr.io/mlflow/mlflow:latest
